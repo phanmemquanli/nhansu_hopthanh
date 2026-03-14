@@ -1,5 +1,5 @@
 // --- CẤU HÌNH HỆ THỐNG ---
-const linkapi = "https://script.google.com/macros/s/AKfycb.../exec"; // Thay Link Web App (doPost) vào đây
+const linkapi = "https://script.google.com/macros/s/AKfycbwLFjHvjGSLMFvdGLYaj6W4Cu-Da3KFsLHBOgezQKtPwSzBT65CIaJG9frfS-vM7PVsTg/exec"; // Thay Link Web App (doPost) vào đây
 const ngayhethan = "31/12/2026"; // Định dạng thời gian: dd/mm/yyyy
 
 // --- HÀM KẾT NỐI API CHUNG ---
