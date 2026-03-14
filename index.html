@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  
+  <style>
+    /* --- CẤU HÌNH GIAO DIỆN --- */
+    :root { --primary-color: #0d6efd; --header-bg: #f8f9fa; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; font-size: 0.9rem; }
+    
+    .header-info { background-color: white; border-bottom: 2px solid var(--primary-color); padding: 0 15px; height: 40px; }
+    .school-name { font-weight: bold; color: #d63384; font-size: 0.95rem; text-transform: uppercase; }
+    
+    /* --- THÔNG TIN NHÀ PHÁT TRIỂN --- */
+    .dev-badge-container { display: flex; align-items: center; background: linear-gradient(135deg, #0d6efd, #0dcaf0); border-radius: 12px; padding: 2px 8px 2px 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); transition: all 0.3s ease; cursor: default; height: 24px; }
+    .dev-badge-container:hover { transform: translateY(-1px); box-shadow: 0 3px 6px rgba(13, 202, 240, 0.3); }
+    .rocket-circle { background-color: rgba(255, 255, 255, 0.2); width: 20px; height: 20px; border-radius: 50%; display: flex; justify-content: center; align-items: center; margin-right: 5px; }
+    .rocket-circle i { color: #FFD700; font-size: 0.65rem; text-shadow: 0 1px 2px rgba(0,0,0,0.2); transition: transform 0.5s ease; }
+    .dev-badge-container:hover .rocket-circle i { transform: translate(1px, -1px) scale(1.1); }
+    .dev-text { display: flex; flex-direction: column; justify-content: center; line-height: 0.85; }
+    .dev-name { color: white; font-weight: 700; font-size: 0.55rem; text-transform: uppercase; letter-spacing: 0.3px; }
+    .dev-role { color: rgba(255,255,255,0.9); font-size: 0.4rem; font-weight: 400; }
+    
+    #loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 9999; display: flex; justify-content: center; align-items: center; }
+    
+    .table-responsive { overflow-x: auto; } 
+    .table-custom { min-width: 100%; }
+    .table-custom th, .table-custom td { white-space: nowrap; vertical-align: middle; font-size: 0.85rem; padding: 4px 6px; } 
+    .table-custom th { background-color: var(--primary-color); color: white; text-align: center; }
+    .row-unsaved { background-color: #fff3cd !important; color: #856404; }
+    
+    .stats-card { background: white; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); padding: 10px; margin-bottom: 15px; }
+    .stats-title { color: var(--primary-color); font-weight: bold; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 10px; text-transform: uppercase; font-size: 0.85rem; }
+    .sub-header { font-size: 0.75rem; background-color: #e9ecef; color: #333; }
+    .th-stat-data { min-width: 55px; width: 55px; max-width: 55px; text-align: center; }
+
+    #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #f4f6f9; z-index: 2000; display: flex; justify-content: center; align-items: center; }
+    .login-box { width: 100%; max-width: 460px; padding: 40px; background: white; border-radius: 15px; box-shadow: 0 15px 35px rgba(0,0,0,0.15); }
+    .login-box h4 { font-size: 1.5rem; font-weight: 700; letter-spacing: 1px; margin-bottom: 30px !important; }
+    .login-box .form-control { padding: 12px 15px; font-size: 1rem; border-radius: 8px; margin-bottom: 15px; }
+    .login-box .btn-login { padding: 12px; font-size: 1.1rem; font-weight: 600; border-radius: 8px; margin-top: 10px; box-shadow: 0 4px 6px rgba(13, 110, 253, 0.2); }
+
+    .toast-container { z-index: 10000; }
+    .toast-body { font-size: 0.9rem; padding: 8px 12px; }
+    .nav-link { padding: 0.3rem 0.8rem; font-size: 0.9rem; }
+    .form-control, .form-select, .btn { padding: 0.25rem 0.5rem; font-size: 0.85rem; }
+    .input-group-text { padding: 0.25rem 0.5rem; }
+  </style>
+</head>
+<body>
+
+  <div id="loading"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>
+
+  <div class="toast-container position-fixed top-0 end-0 p-3">
+    <div id="appToast" class="toast align-items-center text-white border-0" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body"></div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="login-screen" style="display:none;">
+    <div class="login-box">
+      <h4 class="text-center text-primary text-uppercase">ĐĂNG NHẬP HỆ THỐNG</h4>
+      <p class="text-center text-muted mb-4 small">Trường TH&THCS Hợp Thành</p>
+      <form onsubmit="event.preventDefault(); handleLogin();" autocomplete="off" novalidate>
+          <div class="mb-3">
+            <label class="form-label fw-bold text-secondary">Số Căn cước</label>
+            <input type="text" id="username" class="form-control" placeholder="Nhập số Căn cước..." autocomplete="off">
+          </div>
+          <div class="mb-4">
+            <label class="form-label fw-bold text-secondary">Mật khẩu</label>
+            <input type="password" id="password" class="form-control" placeholder="Nhập mật khẩu..." autocomplete="off" readonly onfocus="this.removeAttribute('readonly');" style="background-color: white;">
+          </div>
+          <button type="submit" class="btn btn-primary w-100 btn-login">ĐĂNG NHẬP</button>
+      </form>
+      <p id="login-error" class="text-danger mt-3 text-center fw-bold small"></p>
+    </div>
+  </div>
+
+  <div id="main-app" style="display:none;">
+    <div class="header-info d-flex justify-content-between align-items-center">
+      <div class="school-name">Trường Tiểu học Hợp Thành</div>
+      <div class="dev-badge-container">
+         <div class="rocket-circle"><i class="fas fa-rocket"></i></div>
+         <div class="dev-text">
+            <div class="dev-name">HOÀNG NGỌC LÂM</div>
+            <div class="dev-role">System Developer</div>
+         </div>
+      </div>
+    </div>
+
+    <div class="bg-light px-3 py-1 d-flex justify-content-between border-bottom align-items-center">
+      <div class="d-flex align-items-center">
+         <span class="me-1 small">Xin chào:</span> 
+         <span id="user-display" class="fw-bold text-success me-2 small"></span> 
+         <span id="role-badge" class="badge bg-secondary" style="font-size: 0.7rem;"></span>
+      </div>
+      <div class="fw-bold text-uppercase text-primary flex-grow-1 text-center" id="page-title" style="font-size: 0.95rem;">THÔNG TIN NHÂN SỰ</div>
+      <div>
+        <button onclick="openChangePassModal()" class="btn btn-sm btn-outline-warning me-1" title="Đổi mật khẩu" style="padding: 2px 8px;">
+            <i class="fas fa-key"></i>
+        </button>
+        <button onclick="logout()" class="btn btn-sm btn-outline-danger" style="font-size: 0.75rem; padding: 2px 8px;">Đăng xuất</button>
+      </div>
+    </div>
+
+    <ul class="nav nav-tabs px-3 mt-1" id="myTab" role="tablist">
+      <li class="nav-item"><button class="nav-link active" id="tab1-tab" data-bs-toggle="tab" data-bs-target="#tab1" onclick="setPageTitle('THÔNG TIN NHÂN SỰ')">Thông tin nhân sự</button></li>
+      <li class="nav-item"><button class="nav-link" id="tab2-tab" data-bs-toggle="tab" data-bs-target="#tab2" onclick="setPageTitle('KẾT QUẢ ĐÁNH GIÁ')">Kết quả đánh giá</button></li>
+      <li class="nav-item"><button class="nav-link" id="tab3-tab" data-bs-toggle="tab" data-bs-target="#tab3" onclick="setPageTitle('THỐNG KÊ - TỔNG HỢP')">Tổng hợp</button></li>
+    </ul>
+
+    <div class="tab-content p-2" id="myTabContent">
+      <div class="tab-pane fade show active" id="tab1">
+        <div class="row mb-2 g-1 align-items-center">
+          <div class="col-md-2"><select id="filter-year" class="form-select" onchange="renderTable1()"><option value="">Tất cả năm học</option></select></div>
+          <div class="col-md-4">
+            <div class="input-group">
+              <input type="text" id="search-input" class="form-control" placeholder="Tìm kiếm..." autocomplete="off">
+              <button class="btn btn-outline-secondary" onclick="renderTable1()"><i class="fas fa-search"></i></button>
+            </div>
+          </div>
+          <div class="col-md-6 text-end">
+              <button id="btn-add-new" class="btn btn-success me-1" onclick="openModalAdd()"><i class="fas fa-plus"></i> Thêm mới</button>
+              <button id="btn-update-all" class="btn btn-primary" onclick="handleBatchUpdate()"><i class="fas fa-save"></i> Cập nhật</button>
+          </div>
+        </div>
+        <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+          <table class="table table-bordered table-hover table-custom table-sm" id="table-nhansu">
+            <thead class="sticky-top">
+              <tr>
+                <th style="width: 40px; text-align: center;">Sửa</th><th style="min-width: 80px; text-align: center;">Năm học</th><th style="min-width: 140px; text-align: center;">Căn cước</th>
+                <th style="min-width: 150px; text-align: center;">Họ và tên</th><th style="width: 60px; text-align: center;">Giới tính</th><th style="min-width: 80px; text-align: center;">Ngày sinh</th>
+                <th style="min-width: 100px; text-align: center;">Trạng thái</th><th style="min-width: 90px; text-align: center;">SĐT</th><th style="min-width: 80px; text-align: center;">Dân tộc</th>
+                <th style="min-width: 80px; text-align: center;">Tôn giáo</th><th style="min-width: 180px; text-align: center;">Địa chỉ (TT)</th><th style="min-width: 180px; text-align: center;">Địa chỉ (QQ)</th>
+                <th style="width: 70px; text-align: center;">Đảng viên</th><th style="min-width: 110px; text-align: center;">Vị trí VL</th><th style="min-width: 90px; text-align: center;">Ngày tuyển</th>
+                <th style="min-width: 90px; text-align: center;">Hạng/Ngạch</th><th style="min-width: 110px; text-align: center;">Trình độ CM</th><th style="min-width: 110px; text-align: center;">LL Chính trị</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="tab-pane fade" id="tab2">
+         <div class="row mb-2 g-1 align-items-center">
+             <div class="col-md-3">
+                 <div class="input-group">
+                     <select id="filter-year-2" class="form-select" onchange="renderTable2()"><option value="">Tất cả năm học</option></select>
+                     <button class="btn btn-primary" onclick="renderTable2()"><i class="fas fa-search"></i> Tìm</button>
+                 </div>
+             </div>
+             <div class="col-md-4">
+                 <div class="input-group">
+                    <input type="text" id="search-input-2" class="form-control" placeholder="Tìm tên/Căn cước..." autocomplete="off">
+                    <button class="btn btn-outline-secondary" onclick="renderTable2()"><i class="fas fa-search"></i></button>
+                 </div>
+             </div>
+             <div class="col-md-5 text-end">
+                <button id="btn-update-tab2" class="btn btn-primary" onclick="handleBatchUpdateTab2()"><i class="fas fa-save"></i> Cập nhật</button>
+             </div>
+         </div>
+         <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+            <table class="table table-bordered table-striped table-custom table-sm" id="table-danhgia">
+              <thead class="sticky-top">
+                <tr>
+                  <th style="width: 40px; text-align: center;">Sửa</th>
+                  <th style="min-width: 80px; text-align: center;">Năm học</th>
+                  <th style="min-width: 100px; text-align: center;">Căn cước</th>
+                  <th style="min-width: 180px; text-align: center;">Họ và tên</th>
+                  <th style="min-width: 80px; text-align: center;">XL CM (K1)</th>
+                  <th style="min-width: 80px; text-align: center;">XL CM (K2)</th>
+                  <th style="min-width: 80px; text-align: center;">XL CNN</th>
+                  <th style="min-width: 100px; text-align: center;">XL Viên chức</th>
+                  <th style="min-width: 100px; text-align: center;">XL Đảng viên</th> <th style="min-width: 100px; text-align: center;">DH Chuyên môn</th>
+                  <th style="min-width: 100px; text-align: center;">DH Thi đua</th>
+                  <th style="min-width: 100px; text-align: center;">Hình thức khen</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+         </div>
+      </div>
+
+      <div class="tab-pane fade" id="tab3">
+         <div class="d-flex flex-wrap align-items-center justify-content-between mb-2 gap-2">
+             <div class="input-group" style="width: auto; min-width: 250px;">
+                <span class="input-group-text bg-white"><i class="fas fa-filter text-primary"></i></span>
+                <select id="filter-year-3" class="form-select" onchange="renderStatistics()">
+                    <option value="">Tất cả năm học</option>
+                </select>
+                <button class="btn btn-primary" onclick="renderStatistics()"><i class="fas fa-search"></i></button>
+             </div>
+             <ul class="nav nav-pills" id="subTab3" role="tablist">
+                <li class="nav-item me-1"><button class="nav-link active py-1" id="tab3-1-btn" data-bs-toggle="pill" data-bs-target="#tab3-1" type="button">3.1. Tổng hợp nhân sự</button></li>
+                <li class="nav-item"><button class="nav-link py-1" id="tab3-2-btn" data-bs-toggle="pill" data-bs-target="#tab3-2" type="button">3.2. Kết quả đánh giá</button></li>
+             </ul>
+         </div>
+
+         <div class="tab-content" id="subTab3Content">
+            <div class="tab-pane fade show active" id="tab3-1">
+               <div class="stats-card">
+                  <h6 class="stats-title"><i class="fas fa-users"></i> 3.1. TỔNG HỢP NHÂN SỰ</h6>
+                  <div class="table-responsive">
+                    <table class="table table-bordered table-sm text-center table-hover table-custom" id="table-stats-1">
+                      <thead>
+                        <tr>
+                          <th rowspan="2" style="vertical-align: middle;">Năm học</th><th rowspan="2" style="vertical-align: middle;">Tổng số</th><th rowspan="2" style="vertical-align: middle;">Nữ</th><th rowspan="2" style="vertical-align: middle;">Dân tộc</th><th rowspan="2" style="vertical-align: middle;">Nữ DT</th><th rowspan="2" style="vertical-align: middle;">Đảng viên</th><th rowspan="2" style="vertical-align: middle;">Nữ ĐV</th><th rowspan="2" style="vertical-align: middle;">ĐV DT</th>
+                          <th colspan="3">Vị trí việc làm</th><th colspan="5">Trình độ chuyên môn</th><th colspan="5">Hạng chức danh nghề nghiệp</th><th colspan="3">Lý luận chính trị</th>
+                        </tr>
+                        <tr class="sub-header">
+                          <th>QL</th><th>GV</th><th>NV</th><th>Trên ĐH</th><th>Đại học</th><th>Cao đẳng</th><th>Trung cấp</th><th>Khác</th><th>Hạng 1</th><th>Hạng 2</th><th>Hạng 3</th><th>Hạng 4</th><th>Khác</th><th>Cao cấp</th><th>Trung cấp</th><th>Sơ cấp</th>
+                        </tr>
+                      </thead>
+                      <tbody></tbody>
+                    </table>
+                  </div>
+               </div>
+            </div>
+            <div class="tab-pane fade" id="tab3-2">
+               <div class="stats-card">
+                  <h6 class="stats-title"><i class="fas fa-star"></i> 3.2. KẾT QUẢ THỰC HIỆN NHIỆM VỤ</h6>
+                  <div class="table-responsive">
+                    <table class="table table-bordered table-sm text-center table-hover table-custom" id="table-stats-2">
+                      <thead>
+                        <tr>
+                          <th rowspan="2" style="vertical-align: middle;">Năm học</th>
+                          <th colspan="4">Xếp loại CM (Kỳ 1)</th>
+                          <th colspan="4">Xếp loại CM (Kỳ 2)</th>
+                          <th colspan="3">Xếp loại CNN</th>
+                          <th colspan="4">Xếp loại Viên chức</th>
+                          <th colspan="4">Xếp loại Đảng viên</th> <th colspan="4">Danh hiệu Chuyên môn</th>
+                          <th colspan="5">Danh hiệu Thi đua</th>
+                          <th colspan="5">Hình thức khen</th>
+                        </tr>
+                        <tr class="sub-header">
+                          <th class="th-stat-data">Giỏi</th><th class="th-stat-data">Khá</th><th class="th-stat-data">TB</th><th class="th-stat-data">Yếu</th>
+                          <th class="th-stat-data">Giỏi</th><th class="th-stat-data">Khá</th><th class="th-stat-data">TB</th><th class="th-stat-data">Yếu</th>
+                          <th class="th-stat-data">Tốt</th><th class="th-stat-data">Khá</th><th class="th-stat-data">TB</th>
+                          <th class="th-stat-data">HTXS</th><th class="th-stat-data">HTT</th><th class="th-stat-data">HT</th><th class="th-stat-data">CHT</th>
+                          <th class="th-stat-data">HTXS</th><th class="th-stat-data">HTT</th><th class="th-stat-data">HT</th><th class="th-stat-data">CHT</th>
+                          <th class="th-stat-data">Trường</th><th class="th-stat-data">Huyện</th><th class="th-stat-data">Tỉnh</th><th class="th-stat-data">QG</th>
+                          <th class="th-stat-data">LĐTT</th><th class="th-stat-data">CSTĐ</th><th class="th-stat-data">BK</th><th class="th-stat-data">Huân C</th><th class="th-stat-data">Huy C</th>
+                          <th class="th-stat-data">Xã</th><th class="th-stat-data">Huyện</th><th class="th-stat-data">Tỉnh</th><th class="th-stat-data">Bộ</th><th class="th-stat-data">CP</th>
+                        </tr>
+                      </thead>
+                      <tbody></tbody>
+                    </table>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="modal fade" id="modalForm" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header py-2"><h5 class="modal-title">Thông tin nhân sự</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+          <form id="form-nhansu" autocomplete="off" novalidate>
+              <div class="row mb-2">
+                <div class="col-md-2"><label>Năm học</label><select name="c0" class="form-select cb-namhoc"></select></div>
+                <div class="col-md-3"><label>Căn cước</label><input type="text" name="c1" class="form-control" required></div>
+                <div class="col-md-4"><label>Họ tên</label><input type="text" name="c2" class="form-control"></div>
+                <div class="col-md-3"><label>Giới tính</label><select name="c3" class="form-select cb-gioitinh"></select></div>
+              </div>
+              <div class="row mb-2">
+                <div class="col-md-3"><label>Ngày sinh</label><input type="text" name="c4" class="form-control" oninput="autoFormatDate(this)" maxlength="10" placeholder="dd/mm/yyyy"></div>
+                <div class="col-md-3"><label>Trạng thái</label><select name="c5" class="form-select cb-trangthai"></select></div>
+                <div class="col-md-3"><label>SĐT</label><input type="text" name="c6" class="form-control"></div>
+                <div class="col-md-3"><label>Dân tộc</label><input type="text" name="c7" class="form-control"></div>
+              </div>
+              <div class="row mb-2">
+                 <div class="col-md-3"><label>Tôn giáo</label><input type="text" name="c8" class="form-control"></div>
+                 <div class="col-md-3"><label>Tỉnh/TP (TT)</label><input type="text" name="c9" class="form-control" placeholder="Tỉnh/TP..."></div>
+                 <div class="col-md-3"><label>Huyện/Quận (TT)</label><input type="text" name="c10" class="form-control" placeholder="Huyện/Quận..."></div>
+                 <div class="col-md-3"><label>Xã/Phường (TT)</label><input type="text" name="c11" class="form-control" placeholder="Xã/Phường..."></div>
+              </div>
+              <div class="row mb-2">
+                 <div class="col-md-4"><label>Tỉnh/TP (QQ)</label><input type="text" name="c12" class="form-control" placeholder="Tỉnh/TP..."></div>
+                 <div class="col-md-4"><label>Huyện/Quận (QQ)</label><input type="text" name="c13" class="form-control" placeholder="Huyện/Quận..."></div>
+                 <div class="col-md-4"><label>Xã/Phường (QQ)</label><input type="text" name="c14" class="form-control" placeholder="Xã/Phường..."></div>
+              </div>
+              <div class="row mb-2">
+                <div class="col-md-2"><input type="checkbox" name="c15" id="chk-dangvien"><label>Đảng viên</label></div>
+                <div class="col-md-3"><label>Vị trí</label><select name="c16" class="form-select cb-vitri"></select></div>
+                <div class="col-md-3"><label>Ngày tuyển</label><input type="text" name="c17" class="form-control" oninput="autoFormatDate(this)" maxlength="10" placeholder="dd/mm/yyyy"></div>
+                <div class="col-md-4"><label>Cơ quan tuyển</label><input type="text" name="c18" class="form-control"></div>
+              </div>
+              <div class="row mb-2">
+                <div class="col-md-4"><label>Hạng/Ngạch</label><select name="c19" class="form-select cb-hang"></select></div>
+                <div class="col-md-4"><label>Trình độ CM</label><select name="c20" class="form-select cb-trinhdo"></select></div>
+                <div class="col-md-4"><label>LL Chính trị</label><select name="c21" class="form-select cb-llct"></select></div>
+              </div>
+          </form>
+        </div>
+        <div class="modal-footer py-1 d-flex justify-content-between">
+           <button type="button" class="btn btn-danger" id="btn-delete-nhansu" onclick="deleteNhanSu()"><i class="fas fa-trash"></i> Xóa hồ sơ</button>
+           <button type="button" class="btn btn-primary" onclick="submitForm()"><i class="fas fa-save"></i> Lưu Cập Nhật</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="modalDanhGia" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header bg-success text-white py-2"><h5 class="modal-title">Cập nhật đánh giá</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+          <form id="form-danhgia" autocomplete="off" novalidate>
+              <div class="alert alert-info py-1 mb-2">
+                 <strong>Năm:</strong> <span id="dg-namhoc"></span> | <strong>Họ tên:</strong> <span id="dg-hoten"></span>
+                 <input type="hidden" id="dg-cccd">
+              </div>
+              <div class="row mb-2">
+                 <div class="col-md-6"><label>Xếp loại CM (Kỳ 1)</label><select name="w" class="form-select cb-xlcm"></select></div>
+                 <div class="col-md-6"><label>Xếp loại CM (Kỳ 2)</label><select name="x" class="form-select cb-xlcm"></select></div>
+              </div>
+              <div class="row mb-2">
+                 <div class="col-md-4"><label>Xếp loại CNN</label><select name="y" class="form-select cb-xlcnn"></select></div>
+                 <div class="col-md-4"><label>Xếp loại Viên chức</label><select name="z" class="form-select cb-xlvc"></select></div>
+                 <div class="col-md-4"><label>XL Đảng viên</label>
+                    <select name="ad" class="form-select">
+                        <option value="">--Chọn--</option>
+                        <option value="HTXS">HTXS</option>
+                        <option value="HTT">HTT</option>
+                        <option value="HT">HT</option>
+                        <option value="CHT">CHT</option>
+                    </select>
+                 </div>
+              </div>
+              <div class="row mb-2">
+                 <div class="col-md-4"><label>Danh hiệu CM</label><select name="aa" class="form-select cb-dhcm"></select></div>
+                 <div class="col-md-4"><label>Danh hiệu Thi đua</label><select name="ab" class="form-select cb-dhtd"></select></div>
+                 <div class="col-md-4"><label>Hình thức khen</label><select name="ac" class="form-select cb-capkhen"></select></div>
+              </div>
+          </form>
+        </div>
+        <div class="modal-footer py-1"><button type="button" class="btn btn-success" onclick="submitDanhGia()">Lưu Đánh Giá</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="modalChangePass" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+      <div class="modal-content">
+        <div class="modal-header py-2 bg-warning text-dark">
+          <h6 class="modal-title fw-bold"><i class="fas fa-key"></i> Đổi mật khẩu</h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="form-changepass" autocomplete="off" novalidate>
+              <div class="mb-2">
+                <label class="small fw-bold">Mật khẩu mới</label>
+                <input type="password" id="new-pass" class="form-control" placeholder="...">
+              </div>
+              <div class="mb-2">
+                <label class="small fw-bold">Nhập lại mới</label>
+                <input type="password" id="confirm-pass" class="form-control" placeholder="...">
+              </div>
+              <p id="cp-error" class="text-danger small text-center my-1"></p>
+          </form>
+        </div>
+        <div class="modal-footer py-1 justify-content-center">
+          <button type="button" class="btn btn-sm btn-primary w-100" onclick="submitChangePass()">Xác nhận đổi</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="trialModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header py-2 text-white bg-danger border-0">
+          <h5 class="modal-title fw-bold" id="trialTitle"><i class="fas fa-lock"></i> Hệ thống đã khóa</h5>
+        </div>
+        <div class="modal-body text-center py-4">
+          <p id="trialMessage" style="font-size: 16px; color: #495057;">Thời gian sử dụng của bạn đã kết thúc.<br>Vui lòng liên hệ Quản trị viên để gia hạn.</p>
+        </div>
+        <div class="modal-footer py-2 justify-content-center border-0">
+          <button type="button" class="btn btn-danger" id="btnTrialOk">Thoát hệ thống</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  
+  <script src="ketnoi.js"></script>
+
+  <script>
+    let currentUser = null, globalData = [], globalConfig = [], editingIndex = -1;
+    
+    // --- HÀM GIAO TIẾP API THAY THẾ google.script.run ---
+    async function callServer(actionName, payload = {}) {
+        payload.action = actionName;
+        try {
+            const res = await fetch(linkapi, {
+                method: 'POST',
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
+                body: JSON.stringify(payload)
+            });
+            return await res.json();
+        } catch (error) {
+            throw new Error("Lỗi kết nối Server. Vui lòng thử lại!");
+        }
+    }
+
+    // --- BỔ SUNG: LOGIC KIỂM TRA BẢN QUYỀN VÀ HẠN DÙNG THỬ ---
+    function checkTrialPeriod() {
+        // return true; // <--- BỎ COMMENT DÒNG NÀY ĐỂ TẠM TẮT TÍNH NĂNG KHÓA
+        
+        // Lấy ngày hết hạn từ ketnoi.js (ngayhethan)
+        if (typeof ngayhethan === 'undefined' || !ngayhethan || ngayhethan.trim() === "") {
+            return true; 
+        }
+
+        let parts = ngayhethan.split('/');
+        let trialExpiryDate = new Date(parts[2], parts[1] - 1, parts[0]);
+        let today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const trialModalElement = document.getElementById('trialModal');
+        const btnTrialOk = document.getElementById('btnTrialOk');
+        const trialMessage = document.getElementById('trialMessage');
+        const trialTitle = document.getElementById('trialTitle');
+
+        if (!trialModalElement || !btnTrialOk) return true;
+
+        // KIỂM TRA: NẾU ĐÃ QUÁ HẠN DÙNG THỬ
+        if (today > trialExpiryDate) {
+            trialTitle.innerText = "Hết hạn sử dụng";
+            trialMessage.innerHTML = `Thời gian sử dụng phần mềm của bạn đã kết thúc vào ngày <strong class="text-danger">${ngayhethan}</strong>.<br>Vui lòng liên hệ Admin để gia hạn.`;
+            
+            btnTrialOk.innerText = 'Thoát hệ thống';
+            btnTrialOk.classList.remove('btn-primary');
+            btnTrialOk.classList.add('btn-danger');
+            btnTrialOk.removeAttribute('data-bs-dismiss'); 
+            
+            // Thoát về trang chủ Google
+            btnTrialOk.onclick = function() {
+                window.location.href = "https://www.google.com";
+            };
+            
+            const trialModal = new bootstrap.Modal(trialModalElement, { backdrop: 'static', keyboard: false });
+            trialModal.show();
+            
+            // Ẩn toàn bộ giao diện phía sau để đảm bảo an toàn
+            let loginScreen = document.getElementById('login-screen');
+            if (loginScreen) loginScreen.style.display = 'none';
+            let mainApp = document.getElementById('main-app');
+            if (mainApp) mainApp.style.display = 'none';
+            let devBadge = document.querySelector('.dev-badge-container');
+            if (devBadge) devBadge.style.display = 'none';
+            
+            return false;
+        }
+        return true;
+    }
+
+    $(document).ready(() => { 
+        if (!checkTrialPeriod()) return; // Khóa phần mềm nếu hết hạn
+        
+        $("#loading").hide(); 
+        
+        // Kiểm tra lưu đăng nhập
+        let savedUser = localStorage.getItem("userNS_HT");
+        if(savedUser) {
+            currentUser = JSON.parse(savedUser);
+            $("#login-screen").hide(); 
+            $("#main-app").show();
+            $("#user-display").text(currentUser.name); 
+            $("#role-badge").text(currentUser.role === 'admin' ? 'Quản trị viên' : 'Giáo viên');
+            currentUser.role === 'admin' ? $("#btn-add-new").show() : $("#btn-add-new").hide();
+            loadInitialData();
+        } else {
+            $("#login-screen").css("display", "flex"); 
+        }
+    });
+
+    function showToast(message, type = 'success') {
+       const toastEl = document.getElementById('appToast');
+       const toastBody = toastEl.querySelector('.toast-body');
+       toastEl.classList.remove('bg-primary', 'bg-danger', 'bg-success');
+       if(type === 'error') toastEl.classList.add('bg-danger');
+       else toastEl.classList.add('bg-success');
+       toastBody.textContent = message;
+       const toast = new bootstrap.Toast(toastEl);
+       toast.show();
+    }
+
+    function autoFormatDate(el) {
+       let v = el.value.replace(/\D/g, '');
+       if (v.length >= 2) v = v.substring(0,2) + '/' + v.substring(2);
+       if (v.length >= 5) v = v.substring(0,5) + '/' + v.substring(5, 9);
+       el.value = v;
+    }
+
+    function handleLogin() {
+      const u = $("#username").val(); const p = $("#password").val();
+      if(!u || !p) return showToast("Vui lòng nhập đủ thông tin!", 'error');
+      $("#loading").show();
+      
+      callServer('NS_loginSystem', {username: u, password: p})
+        .then(onLoginSuccess)
+        .catch(onLoginFail);
+    }
+    
+    function onLoginSuccess(res) {
+      if(!res.success) { $("#loading").hide(); $("#login-error").text(res.message); return; }
+      
+      currentUser = res.data;
+      if (currentUser.mustChangePass) {
+          $("#login-screen").hide();
+          $("#main-app").show();
+          loadInitialData();
+          $("#form-changepass")[0].reset();
+          $("#cp-error").text("Mật khẩu mặc định '123' không an toàn. Vui lòng đổi ngay!");
+          var modalCP = new bootstrap.Modal(document.getElementById('modalChangePass'), { backdrop: 'static', keyboard: false });
+          modalCP.show();
+          $("#loading").hide();
+          return;
+      }
+
+      // Lưu Local Storage
+      localStorage.setItem("userNS_HT", JSON.stringify(currentUser));
+      
+      $("#user-display").text(currentUser.name); $("#role-badge").text(currentUser.role === 'admin' ? 'Quản trị viên' : 'Giáo viên');
+      currentUser.role === 'admin' ? $("#btn-add-new").show() : $("#btn-add-new").hide();
+      $("#login-screen").hide(); $("#main-app").show(); loadInitialData();
+    }
+    
+    function onLoginFail(e) { showToast("Lỗi: " + e, 'error'); $("#loading").hide(); }
+    
+    function logout() { 
+       currentUser = null;
+       globalData = []; editingIndex = -1;
+       localStorage.removeItem("userNS_HT"); // Xóa phiên lưu trữ
+       $("#username").val(""); $("#password").val("");
+       $("#table-nhansu tbody").empty(); $("#table-danhgia tbody").empty();
+       $("#main-app").hide(); 
+       $("#login-screen").css("display", "flex").fadeIn();
+    }
+    
+    function setPageTitle(t) { $("#page-title").text(t); }
+
+    function openChangePassModal() {
+        $("#form-changepass")[0].reset();
+        $("#cp-error").text("");
+        $("#modalChangePass").modal('show');
+    }
+
+    function submitChangePass() {
+       const newP = $("#new-pass").val();
+       const cfP = $("#confirm-pass").val();
+       if(!newP || !cfP) { $("#cp-error").text("Vui lòng nhập đầy đủ thông tin!"); return; }
+       if(newP !== cfP) { $("#cp-error").text("Mật khẩu mới không khớp!"); return; }
+       if(newP.length < 1) { $("#cp-error").text("Mật khẩu không được để trống!"); return; }
+       if(newP === '123') { $("#cp-error").text("Không được đặt lại mật khẩu là 123!"); return; }
+       $("#loading").show();
+       
+       callServer('NS_changePasswordSystem', {username: currentUser.username, newPass: newP})
+        .then(res => {
+           $("#loading").hide();
+           if(res.success) {
+               $("#modalChangePass").modal('hide');
+               showToast("Đổi mật khẩu thành công! Đang chuyển về màn hình đăng nhập...", 'success');
+               setTimeout(() => logout(), 1000); 
+           } else {
+               $("#cp-error").text(res.message);
+           }
+        }).catch(e => {
+           $("#loading").hide(); $("#cp-error").text("Lỗi: " + e);
+        });
+    }
+
+    function loadInitialData() {
+      callServer('NS_getAllData')
+        .then(res => {
+            if(res.success) renderApp(res.data);
+            else { showToast(res.message, 'error'); $("#loading").hide(); }
+        }).catch(e => { showToast(e, 'error'); $("#loading").hide(); });
+    }
+    
+    function renderApp(data) {
+      if (!data) { showToast("Không có dữ liệu!", 'error'); $("#loading").hide(); return; }
+      globalConfig = data.config || []; globalData = data.nhansu || [];
+      setupDropdowns(); renderTable1(); renderTable2(); renderStatistics(); $("#loading").hide();
+    }
+    
+    function loadDataByYear() { renderTable1(); }
+
+    function setupDropdowns() {
+       const map1 = {'.cb-namhoc':0, '.cb-gioitinh':1, '.cb-trangthai':2, '.cb-vitri':3, '.cb-hang':4, '.cb-trinhdo':5, '.cb-llct':6};
+       for(let cls in map1) populateSelect(cls, map1[cls]);
+       const map2 = {'.cb-xlcm':7, '.cb-xlcnn':8, '.cb-xlvc':9, '.cb-dhcm':10, '.cb-dhtd':11, '.cb-capkhen':12};
+       for(let cls in map2) populateSelect(cls, map2[cls]);
+
+       let years = getUniqueOptions(0);
+       let filterHtml = '<option value="">Tất cả năm học</option>' + years.map(o => `<option value="${o}">${o}</option>`).join('');
+       $("#filter-year, #filter-year-2, #filter-year-3").html(filterHtml);
+    }
+
+    function getUniqueOptions(colIdx) {
+       return globalConfig.map(r => String(r[colIdx]).trim()).filter(x => x && x!=="" && x!=="undefined").filter((v,i,a) => a.indexOf(v)===i);
+    }
+    
+    function populateSelect(cls, colIdx) {
+       let options = getUniqueOptions(colIdx);
+       $(cls).html('<option value="">--Chọn--</option>' + options.map(o => `<option value="${o}">${o}</option>`).join(''));
+    }
+
+    function renderTable1() {
+       const yearFilter = $("#filter-year").val();
+       const search = $("#search-input").val().toLowerCase();
+       const tbody = $("#table-nhansu tbody"); tbody.empty();
+       globalData.forEach((row, index) => {
+          let rowYear = String(row[0]).trim();
+          if(yearFilter && rowYear !== String(yearFilter).trim()) return;
+          if(search && !row.join(" ").toLowerCase().includes(search)) return;
+          
+          let canEdit = (currentUser.role === 'admin') || (currentUser.role === 'user' && row[1] == currentUser.username);
+          let btnEdit = canEdit ? `<button class="btn btn-sm btn-warning py-0" onclick="editRow(${index})"><i class="fas fa-edit"></i></button>` : '';
+          
+          let rowClass = row._isDirty ? "row-unsaved" : "";
+          let statusText = row._isDirty ? " <i class='fas fa-pen text-danger' title='Chưa lưu'></i>" : "";
+
+          tbody.append(`<tr class="${rowClass}">
+            <td class="text-center">${btnEdit}</td><td class="fw-bold text-primary">${row[0]}</td><td>${row[1]} ${statusText}</td>
+            <td class="fw-bold">${row[2]}</td><td>${row[3]}</td><td>${row[4]}</td>
+            <td><span class="badge ${row[5]==='Đã chuyển'?'bg-danger':'bg-success'}">${row[5]}</span></td>
+            <td>${row[6]}</td><td>${row[7]}</td><td>${row[8]}</td>
+            <td>${row[9]}, ${row[10]}, ${row[11]}</td><td>${row[12]}, ${row[13]}, ${row[14]}</td>
+            <td>${row[15]}</td><td>${row[16]}</td><td>${row[17]}</td><td>${row[19]}</td><td>${row[20]}</td><td>${row[21]}</td>
+          </tr>`);
+       });
+    }
+
+    function editRow(index) {
+       editingIndex = index;
+       const row = globalData[index];
+       const form = document.getElementById("form-nhansu"); 
+       form.reset();
+       
+       $("#btn-delete-nhansu").show();
+       for(let i=0; i<=21; i++) {
+          let val = row[i];
+          if (val === null || val === undefined) val = "";
+          val = String(val).trim();
+          if(i===15) {
+             form.elements['c15'].checked = (val.toLowerCase()==="x" || val==="true");
+          } 
+          else {
+             let el = $(form).find(`[name="c${i}"]`);
+             if(el.length) { el.val(val).change(); }
+          }
+       }
+       $("#modalForm").modal('show');
+    }
+    
+    function openModalAdd() { 
+       editingIndex=-1; 
+       document.getElementById("form-nhansu").reset();
+       $("#btn-delete-nhansu").hide();
+       $("#modalForm").modal('show');
+    }
+    
+    // --- HÀM XÓA HỒ SƠ ---
+    function deleteNhanSu() {
+       if (editingIndex === -1) return;
+       const row = globalData[editingIndex];
+       const year = String(row[0]).trim();
+       const cccd = String(row[1]).trim();
+       if (!confirm("CẢNH BÁO: Xóa dữ liệu năm " + year + " của CCCD " + cccd + "?\nDữ liệu sẽ bị xóa VĨNH VIỄN khỏi hệ thống!")) return;
+       
+       $("#loading").show();
+       callServer('NS_deleteNhanSu', {year: year, cccd: cccd, username: currentUser.username, role: currentUser.role})
+        .then(res => {
+           if (res.success) {
+               showToast(res.message, 'success');
+               $("#modalForm").modal('hide');
+               loadInitialData();
+           } else {
+               if (res.message === "Không tìm thấy hồ sơ để xóa (Có thể hồ sơ chưa được lưu lên Server)!") {
+                   globalData.splice(editingIndex, 1);
+                   $("#modalForm").modal('hide');
+                   renderTable1();
+                   $("#loading").hide();
+                   showToast("Đã xóa hồ sơ tạm thời!", 'success');
+               } else {
+                   $("#loading").hide();
+                   showToast(res.message, 'error');
+               }
+           }
+        }).catch(e => { 
+           $("#loading").hide(); showToast("Lỗi: " + e, 'error');
+        });
+    }
+
+    function submitForm() {
+       const form = document.getElementById("form-nhansu");
+       let newData = [];
+       for(let i=0; i<=21; i++) {
+           let val = "";
+           if(i===15) val = form.elements['c15'].checked ? "x" : "";
+           else val = form.elements['c'+i].value;
+           newData.push(val);
+       }
+       if(!newData[1]) return showToast("Vui lòng nhập CCCD!", 'error');
+       newData._isDirty = true;
+       if(editingIndex !== -1) { 
+          let oldEval = globalData[editingIndex].slice(22);
+          globalData[editingIndex] = newData.concat(oldEval); 
+          globalData[editingIndex]._isDirty=true; 
+       }
+       else globalData.push(newData);
+       $("#modalForm").modal('hide'); renderTable1();
+    }
+    
+    function handleBatchUpdate() {
+       const dirty = globalData.filter(r => r._isDirty);
+       if(dirty.length===0) return showToast("Không có dữ liệu mới!", 'error');
+       
+       $("#loading").show();
+       callServer('NS_saveBatchNhanSu', {dataArray: dirty, username: currentUser.username, role: currentUser.role})
+         .then(res => {
+            showToast(res.message, res.success ? 'success' : 'error');
+            if(res.success) loadInitialData(); else $("#loading").hide();
+         })
+         .catch(e => { showToast("Lỗi: " + e, 'error'); $("#loading").hide(); });
+    }
+
+    function renderTable2() {
+       const yearFilter = $("#filter-year-2").val();
+       const search = $("#search-input-2").val().toLowerCase();
+       const tbody = $("#table-danhgia tbody"); tbody.empty();
+       globalData.forEach((row, index) => {
+          let rowYear = String(row[0]).trim();
+          if(yearFilter && rowYear !== String(yearFilter).trim()) return;
+          if(search && !row.join(" ").toLowerCase().includes(search)) return;
+          if(row[5] === "Đã chuyển") return; 
+          
+          let btnEdit = (currentUser.role === 'admin') ? 
+             `<button class="btn btn-sm btn-success py-0" onclick="openModalDanhGia(${index})"><i class="fas fa-edit"></i></button>` : '';
+          
+          let rowClass = row._isDirtyEval ? "row-unsaved" : "";
+          let statusText = row._isDirtyEval ? " <i class='fas fa-pen text-danger' title='Chưa lưu'></i>" : "";
+          
+          tbody.append(`<tr class="${rowClass}">
+            <td class="text-center">${btnEdit}</td><td class="fw-bold">${row[0]}</td><td>${row[1]} ${statusText}</td>
+            <td class="fw-bold text-primary">${row[2]}</td><td>${row[22]||''}</td> <td>${row[23]||''}</td> <td>${row[24]||''}</td> <td>${row[25]||''}</td><td>${row[29]||''}</td><td>${row[26]||''}</td> <td>${row[27]||''}</td> <td>${row[28]||''}</td>
+          </tr>`);
+       });
+    }
+
+    function openModalDanhGia(index) {
+       editingIndex = index;
+       const row = globalData[index];
+       $("#dg-namhoc").text(row[0]); $("#dg-hoten").text(row[2]); $("#dg-cccd").val(row[1]);
+       const form = document.getElementById("form-danhgia"); form.reset();
+       form.elements['w'].value = row[22]||""; form.elements['x'].value = row[23]||"";
+       form.elements['y'].value = row[24]||""; form.elements['z'].value = row[25]||"";
+       form.elements['ad'].value = row[29]||""; 
+       form.elements['aa'].value = row[26]||"";
+       form.elements['ab'].value = row[27]||""; form.elements['ac'].value = row[28]||"";
+       $("#modalDanhGia").modal('show');
+    }
+
+    function submitDanhGia() {
+       const form = document.getElementById("form-danhgia");
+       if (editingIndex !== -1) {
+           globalData[editingIndex][22] = form.elements['w'].value;
+           globalData[editingIndex][23] = form.elements['x'].value;
+           globalData[editingIndex][24] = form.elements['y'].value;
+           globalData[editingIndex][25] = form.elements['z'].value;
+           globalData[editingIndex][26] = form.elements['aa'].value;
+           globalData[editingIndex][27] = form.elements['ab'].value;
+           globalData[editingIndex][28] = form.elements['ac'].value;
+           globalData[editingIndex][29] = form.elements['ad'].value; 
+           
+           globalData[editingIndex]._isDirtyEval = true;
+           renderTable2();
+           $("#modalDanhGia").modal('hide');
+           showToast("Đã lưu tạm thời. Nhấn Cập Nhật để ghi dữ liệu.", 'success');
+       }
+    }
+    
+    function handleBatchUpdateTab2() {
+       const dirty = globalData.filter(r => r._isDirtyEval);
+       if(dirty.length===0) return showToast("Không có dữ liệu đánh giá mới!", 'error');
+       
+       $("#loading").show();
+       callServer('NS_saveBatchDanhGia', {dataArray: dirty, role: currentUser.role})
+         .then(res => {
+          showToast(res.message, res.success ? 'success' : 'error');
+          if(res.success) loadInitialData(); else $("#loading").hide();
+       }).catch(e => { showToast(e, 'error'); $("#loading").hide(); });
+    }
+
+    function renderStatistics() {
+        const yearFilter = $("#filter-year-3").val();
+        const stats1 = $("#table-stats-1 tbody"); stats1.empty();
+        const stats2 = $("#table-stats-2 tbody"); stats2.empty();
+
+        let years = getUniqueOptions(0);
+        if (yearFilter) years = [String(yearFilter).trim()];
+
+        years.forEach(y => {
+            let dataY = globalData.filter(r => String(r[0]).trim() === y && r[5] !== "Đã chuyển");
+            if (dataY.length === 0) return;
+
+            let total = dataY.length;
+            let nu = dataY.filter(r => r[3] === "Nữ").length;
+            let dantoc = dataY.filter(r => r[7] && r[7] !== "Kinh").length;
+            let nuDT = dataY.filter(r => r[3] === "Nữ" && r[7] && r[7] !== "Kinh").length;
+            let dangvien = dataY.filter(r => r[15] && (String(r[15]).toLowerCase() === "x")).length;
+            let nuDV = dataY.filter(r => r[3] === "Nữ" && r[15] && (String(r[15]).toLowerCase() === "x")).length;
+            let dvDT = dataY.filter(r => r[7] && r[7] !== "Kinh" && r[15] && (String(r[15]).toLowerCase() === "x")).length;
+
+            let ql = dataY.filter(r => r[16] && r[16].includes("Quản lý")).length;
+            let gv = dataY.filter(r => r[16] && r[16].includes("Giáo viên")).length;
+            let nv = dataY.filter(r => r[16] && r[16].includes("Nhân viên")).length;
+            let td_tren = dataY.filter(r => { let v = (r[20]||"").toLowerCase(); return v.includes("trên") || v.includes("thạc sĩ") || v.includes("tiến sĩ"); }).length;
+            let td_dh = dataY.filter(r => { let v = (r[20]||"").toLowerCase(); return v.includes("đại học") && !v.includes("trên"); }).length;
+            let td_cd = dataY.filter(r => (r[20]||"").toLowerCase().includes("cao đẳng")).length;
+            let td_tc = dataY.filter(r => (r[20]||"").toLowerCase().includes("trung cấp")).length;
+            let td_k = dataY.filter(r => { let v = (r[20]||"").toLowerCase(); return !v.includes("trên") && !v.includes("thạc sĩ") && !v.includes("tiến sĩ") && !v.includes("đại học") && !v.includes("cao đẳng") && !v.includes("trung cấp"); }).length;
+            
+            let h1 = dataY.filter(r => r[19] === "TH-H1").length; let h2 = dataY.filter(r => r[19] === "TH-H2").length;
+            let h3 = dataY.filter(r => r[19] === "TH-H3").length; let h4 = dataY.filter(r => r[19] === "TH-H4").length;
+            let hk = dataY.filter(r => r[19] === "TH_Khác").length;
+            let ll_cc = dataY.filter(r => r[21] === "Cao cấp").length; let ll_tc = dataY.filter(r => r[21] === "Trung cấp").length; let ll_sc = dataY.filter(r => r[21] === "Sơ cấp").length;
+            
+            stats1.append(`<tr>
+              <td class="fw-bold text-primary">${y}</td><td>${total}</td><td>${nu}</td><td>${dantoc}</td><td>${nuDT}</td>
+              <td>${dangvien}</td><td>${nuDV}</td><td>${dvDT}</td>
+              <td>${ql}</td><td>${gv}</td><td>${nv}</td>
+              <td>${td_tren}</td><td>${td_dh}</td><td>${td_cd}</td><td>${td_tc}</td><td>${td_k}</td>
+              <td>${h1}</td><td>${h2}</td><td>${h3}</td><td>${h4}</td><td>${hk}</td>
+              <td>${ll_cc}</td><td>${ll_tc}</td><td>${ll_sc}</td>
+          </tr>`);
+            
+            let xlk1_g = dataY.filter(r => r[22] === "Giỏi").length; let xlk1_k = dataY.filter(r => r[22] === "Khá").length; let xlk1_tb = dataY.filter(r => r[22] === "TB").length; let xlk1_y = dataY.filter(r => r[22] === "Yếu").length;
+            let xlk2_g = dataY.filter(r => r[23] === "Giỏi").length; let xlk2_k = dataY.filter(r => r[23] === "Khá").length; let xlk2_tb = dataY.filter(r => r[23] === "TB").length; let xlk2_y = dataY.filter(r => r[23] === "Yếu").length;
+            let cnn_t = dataY.filter(r => r[24] === "Tốt").length; let cnn_k = dataY.filter(r => r[24] === "Khá").length; let cnn_tb = dataY.filter(r => r[24] === "TB").length;
+
+            let vc_htxs = dataY.filter(r => { let v = (r[25]||"").toLowerCase(); return v.includes("htxs") || v.includes("xs") || v.includes("xuất sắc"); }).length;
+            let vc_htt = dataY.filter(r => { let v = (r[25]||"").toLowerCase(); return v.includes("htt") || v.includes("tốt"); }).length;
+            let vc_cht = dataY.filter(r => { let v = (r[25]||"").toLowerCase(); return v.includes("cht") || v.includes("chưa") || v.includes("không") || v.includes("kht"); }).length;
+            let vc_ht = dataY.filter(r => { let v = (r[25]||"").toLowerCase(); return (v.includes("ht") || v.includes("hoàn thành")) && !(v.includes("htxs") || v.includes("xs") || v.includes("xuất sắc") || v.includes("htt") || v.includes("tốt") || v.includes("cht") || v.includes("chưa") || v.includes("không") || v.includes("kht")); }).length;
+            
+            let dv_htxs = dataY.filter(r => { let v = (r[29]||"").toLowerCase(); return v.includes("htxs") || v.includes("xs") || v.includes("xuất sắc"); }).length;
+            let dv_htt = dataY.filter(r => { let v = (r[29]||"").toLowerCase(); return v.includes("htt") || (v.includes("tốt") && !v.includes("không")); }).length;
+            let dv_cht = dataY.filter(r => { let v = (r[29]||"").toLowerCase(); return v.includes("cht") || v.includes("chưa") || v.includes("không") || v.includes("kht"); }).length;
+            let dv_ht = dataY.filter(r => { let v = (r[29]||"").toLowerCase(); return (v.includes("ht") || v.includes("hoàn thành")) && !(v.includes("htxs") || v.includes("xs") || v.includes("xuất sắc") || v.includes("htt") || v.includes("tốt") || v.includes("cht") || v.includes("chưa") || v.includes("không") || v.includes("kht")); }).length;
+            
+            let dh_tr = dataY.filter(r => (r[26]||"").toLowerCase().includes("trường")).length;
+            let dh_h = dataY.filter(r => { let v = (r[26]||"").toLowerCase(); return v.includes("huyện") || v.includes("tp") || v.includes("thành phố"); }).length;
+            let dh_t = dataY.filter(r => (r[26]||"").toLowerCase().includes("tỉnh")).length;
+            let dh_qg = dataY.filter(r => (r[26]||"").toLowerCase().includes("quốc gia") || (r[26]||"").toLowerCase().includes("qg")).length;
+            
+            let td_ldtt = dataY.filter(r => r[27] === "LĐTT").length; let td_cstd = dataY.filter(r => r[27] === "CSTĐ").length;
+            let td_bk = dataY.filter(r => r[27] === "Bằng khen").length; let td_huan = dataY.filter(r => (r[27]||"").toLowerCase().includes("huân chương")).length;
+            let td_huy = dataY.filter(r => (r[27]||"").toLowerCase().includes("huy chương")).length;
+
+            let kh_x = dataY.filter(r => (r[28]||"").toLowerCase().includes("xã")).length; let kh_h = dataY.filter(r => (r[28]||"").toLowerCase().includes("huyện")).length;
+            let kh_t = dataY.filter(r => (r[28]||"").toLowerCase().includes("tỉnh")).length; let kh_b = dataY.filter(r => (r[28]||"").toLowerCase().includes("bộ")).length;
+            let kh_cp = dataY.filter(r => (r[28]||"").toLowerCase().includes("chính phủ") || (r[28]||"").toLowerCase().includes("cp")).length;
+
+            stats2.append(`<tr>
+              <td class="fw-bold text-primary">${y}</td>
+              <td>${xlk1_g}</td><td>${xlk1_k}</td><td>${xlk1_tb}</td><td>${xlk1_y}</td>
+              <td>${xlk2_g}</td><td>${xlk2_k}</td><td>${xlk2_tb}</td><td>${xlk2_y}</td>
+              <td>${cnn_t}</td><td>${cnn_k}</td><td>${cnn_tb}</td>
+              <td>${vc_htxs}</td><td>${vc_htt}</td><td>${vc_ht}</td><td>${vc_cht}</td>
+              <td>${dv_htxs}</td><td>${dv_htt}</td><td>${dv_ht}</td><td>${dv_cht}</td> <td>${dh_tr}</td><td>${dh_h}</td><td>${dh_t}</td><td>${dh_qg}</td>
+              <td>${td_ldtt}</td><td>${td_cstd}</td><td>${td_bk}</td><td>${td_huan}</td><td>${td_huy}</td>
+              <td>${kh_x}</td><td>${kh_h}</td><td>${kh_t}</td><td>${kh_b}</td><td>${kh_cp}</td>
+          </tr>`);
+        });
+    }
+  </script>
+</body>
+</html>
