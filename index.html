@@ -473,8 +473,8 @@
         
         $("#loading").hide(); 
         
-        // Kiểm tra lưu đăng nhập
-        let savedUser = localStorage.getItem("userNS_HT");
+        // Kiểm tra lưu đăng nhập (Dùng sessionStorage)
+        let savedUser = sessionStorage.getItem("userNS_HT");
         if(savedUser) {
             currentUser = JSON.parse(savedUser);
             $("#login-screen").hide(); 
@@ -532,8 +532,8 @@
           return;
       }
 
-      // Lưu Local Storage
-      localStorage.setItem("userNS_HT", JSON.stringify(currentUser));
+      // Lưu Session Storage
+      sessionStorage.setItem("userNS_HT", JSON.stringify(currentUser));
       
       $("#user-display").text(currentUser.name); $("#role-badge").text(currentUser.role === 'admin' ? 'Quản trị viên' : 'Giáo viên');
       currentUser.role === 'admin' ? $("#btn-add-new").show() : $("#btn-add-new").hide();
@@ -545,7 +545,7 @@
     function logout() { 
        currentUser = null;
        globalData = []; editingIndex = -1;
-       localStorage.removeItem("userNS_HT"); // Xóa phiên lưu trữ
+       sessionStorage.removeItem("userNS_HT"); // Xóa phiên lưu trữ
        $("#username").val(""); $("#password").val("");
        $("#table-nhansu tbody").empty(); $("#table-danhgia tbody").empty();
        $("#main-app").hide(); 
